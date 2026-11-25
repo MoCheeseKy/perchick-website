@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Category {
-  id        String    @id // Slug identifier, e.g. "nugget-karaage"
+  id        String    @id
   name      String
   icon      String?
   products  Product[]

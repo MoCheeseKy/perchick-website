@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, RotateCcw } from "lucide-react";
 import Wrapper from "@/components/_shared/Wrapper";
@@ -25,52 +25,52 @@ export default function ProductsView({ initialProducts }: ProductsViewProps) {
   const [loading, setLoading] = useState(!initialProducts);
 
   useEffect(() => {
-    async function loadData() {
+    let ignore = false;
+    async function loadCategories() {
       try {
-        const [prodData, catData] = await Promise.all([
-          fetchProducts(),
-          fetchCategories(),
-        ]);
-        setProducts(prodData);
-        setCategories(catData);
+        const catData = await fetchCategories();
+        if (!ignore) {
+          setCategories(catData);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadCategories();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const prodData = await fetchProducts({
+          category: selectedCategory,
+          search: searchQuery,
+          sort: sortBy,
+        });
+        if (!ignore) {
+          setProducts(prodData);
+        }
       } catch (err) {
         console.error(err);
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
-    }
-    loadData();
-  }, []);
+    }, searchQuery ? 250 : 0);
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [selectedCategory, searchQuery, sortBy]);
 
-    if (selectedCategory && selectedCategory !== "all") {
-      result = result.filter((p) => p.category === selectedCategory);
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
-      );
-    }
-
-    if (sortBy === "price-asc") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price-desc") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "rating") {
-      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else if (sortBy === "popular") {
-      result.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
-    }
-
-    return result;
-  }, [products, selectedCategory, searchQuery, sortBy]);
+  const filteredProducts = products;
 
   const handleReset = () => {
     setUserCategory("all");
