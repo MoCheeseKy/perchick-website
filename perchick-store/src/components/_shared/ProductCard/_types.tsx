@@ -4,6 +4,7 @@ export interface ProductInterface {
   category: string;
   categoryName?: string;
   price: number;
+  originalPrice?: number | null;
   weight: string;
   stock: number;
   rating?: number;
